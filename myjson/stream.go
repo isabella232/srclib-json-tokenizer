@@ -387,8 +387,6 @@ func (dec *Decoder) Token() (Token, error) {
 				continue
 			}
 			return dec.tokenError(c)
-		case ' ':
-			continue
 
 		case '"':
 			if dec.tokenState == tokenObjectStart || dec.tokenState == tokenObjectKey {
@@ -445,11 +443,13 @@ type TokenInfo struct {
 func (dec *Decoder) EndpToken() (TokenInfo, error) {
 
 	for {
-		start := dec.BytesRead()
+
 		c, err := dec.peek()
+		start := dec.BytesRead()
 		if err != nil {
 			return TokenInfo{}, err
 		}
+
 		switch c {
 		case '[':
 			if !dec.tokenValueAllowed() {
