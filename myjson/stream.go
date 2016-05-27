@@ -387,6 +387,8 @@ func (dec *Decoder) Token() (Token, error) {
 				continue
 			}
 			return dec.tokenError(c)
+		case ' ':
+			continue
 
 		case '"':
 			if dec.tokenState == tokenObjectStart || dec.tokenState == tokenObjectKey {
