@@ -550,7 +550,7 @@ func TestUnmarshal(t *testing.T) {
 		if tt.useNumber {
 			dec.UseNumber()
 		}
-		if err := dec.Decode(v.Interface()); !reflect.DeepEqual(err, tt.err) {
+		if err := dec.decode(v.Interface()); !reflect.DeepEqual(err, tt.err) {
 			t.Errorf("#%d: %v, want %v", i, err, tt.err)
 			continue
 		} else if err != nil {
@@ -577,7 +577,7 @@ func TestUnmarshal(t *testing.T) {
 			if tt.useNumber {
 				dec.UseNumber()
 			}
-			if err := dec.Decode(vv.Interface()); err != nil {
+			if err := dec.decode(vv.Interface()); err != nil {
 				t.Errorf("#%d: error re-unmarshaling %#q: %v", i, enc, err)
 				continue
 			}
@@ -719,7 +719,7 @@ func TestErrorMessageFromMisusedString(t *testing.T) {
 	for n, tt := range wrongStringTests {
 		r := strings.NewReader(tt.in)
 		var s WrongString
-		err := NewDecoder(r).Decode(&s)
+		err := NewDecoder(r).decode(&s)
 		got := fmt.Sprintf("%v", err)
 		if got != tt.err {
 			t.Errorf("%d. got err = %q, want %q", n, got, tt.err)
@@ -1084,7 +1084,7 @@ func TestEmptyString(t *testing.T) {
 	data := `{"Number1":"1", "Number2":""}`
 	dec := NewDecoder(strings.NewReader(data))
 	var t2 T2
-	err := dec.Decode(&t2)
+	err := dec.decode(&t2)
 	if err == nil {
 		t.Fatal("Decode: did not return error")
 	}

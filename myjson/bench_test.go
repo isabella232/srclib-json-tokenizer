@@ -120,7 +120,7 @@ func BenchmarkCodeDecoder(b *testing.B) {
 		buf.WriteByte('\n')
 		buf.WriteByte('\n')
 		buf.WriteByte('\n')
-		if err := dec.Decode(&r); err != nil {
+		if err := dec.decode(&r); err != nil {
 			b.Fatal("Decode:", err)
 		}
 	}
@@ -133,7 +133,7 @@ func BenchmarkDecoderStream(b *testing.B) {
 	dec := NewDecoder(&buf)
 	buf.WriteString(`"` + strings.Repeat("x", 1000000) + `"` + "\n\n\n")
 	var x interface{}
-	if err := dec.Decode(&x); err != nil {
+	if err := dec.decode(&x); err != nil {
 		b.Fatal("Decode:", err)
 	}
 	ones := strings.Repeat(" 1\n", 300000) + "\n\n\n"
@@ -143,7 +143,7 @@ func BenchmarkDecoderStream(b *testing.B) {
 			buf.WriteString(ones)
 		}
 		x = nil
-		if err := dec.Decode(&x); err != nil || x != 1.0 {
+		if err := dec.decode(&x); err != nil || x != 1.0 {
 			b.Fatalf("Decode: %v after %d", err, i)
 		}
 	}

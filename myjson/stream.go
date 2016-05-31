@@ -39,14 +39,15 @@ func NewDecoder(r io.Reader) *Decoder {
 // Number instead of as a float64.
 func (dec *Decoder) UseNumber() { dec.d.useNumber = true }
 
-func (dec *Decoder) BytesRead() int { return dec.clearedBytes + dec.scanp }
+//BytesProcessed returns the total number of bytes that have
+func (dec *Decoder) BytesProcessed() int { return dec.clearedBytes + dec.scanp }
 
 // Decode reads the next JSON-encoded value from its
 // input and stores it in the value pointed to by v.
 //
 // See the documentation for Unmarshal for details about
 // the conversion of JSON into a Go value.
-func (dec *Decoder) Decode(v interface{}) error {
+func (dec *Decoder) decode(v interface{}) error {
 	if dec.err != nil {
 		return dec.err
 	}
@@ -311,113 +312,6 @@ func (d Delim) String() string {
 	return string(d)
 }
 
-// Token returns the next JSON token in the input stream.
-// At the end of the input stream, Token returns nil, io.EOF.
-//
-// Token guarantees that the delimiters [ ] { } it returns are
-// properly nested and matched: if Token encounters an unexpected
-// delimiter in the input, it will return an error.
-//
-// The input stream consists of basic JSON values—bool, string,
-// number, and null—along with delimiters [ ] { } of type Delim
-// to mark the start and end of arrays and objects.
-// Commas and colons are elided.
-func (dec *Decoder) Token() (Token, error) {
-	for {
-		c, err := dec.peek()
-		if err != nil {
-			return nil, err
-		}
-		switch c {
-		case '[':
-			if !dec.tokenValueAllowed() {
-				return dec.tokenError(c)
-			}
-			dec.scanp++
-			dec.tokenStack = append(dec.tokenStack, dec.tokenState)
-			dec.tokenState = tokenArrayStart
-			return Delim('['), nil
-
-		case ']':
-			if dec.tokenState != tokenArrayStart && dec.tokenState != tokenArrayComma {
-				return dec.tokenError(c)
-			}
-			dec.scanp++
-			dec.tokenState = dec.tokenStack[len(dec.tokenStack)-1]
-			dec.tokenStack = dec.tokenStack[:len(dec.tokenStack)-1]
-			dec.tokenValueEnd()
-			return Delim(']'), nil
-
-		case '{':
-			if !dec.tokenValueAllowed() {
-				return dec.tokenError(c)
-			}
-			dec.scanp++
-			dec.tokenStack = append(dec.tokenStack, dec.tokenState)
-			dec.tokenState = tokenObjectStart
-			return Delim('{'), nil
-
-		case '}':
-			if dec.tokenState != tokenObjectStart && dec.tokenState != tokenObjectComma {
-				return dec.tokenError(c)
-			}
-			dec.scanp++
-			dec.tokenState = dec.tokenStack[len(dec.tokenStack)-1]
-			dec.tokenStack = dec.tokenStack[:len(dec.tokenStack)-1]
-			dec.tokenValueEnd()
-			return Delim('}'), nil
-
-		case ':':
-			if dec.tokenState != tokenObjectColon {
-				return dec.tokenError(c)
-			}
-			dec.scanp++
-			dec.tokenState = tokenObjectValue
-			continue
-
-		case ',':
-			if dec.tokenState == tokenArrayComma {
-				dec.scanp++
-				dec.tokenState = tokenArrayValue
-				continue
-			}
-			if dec.tokenState == tokenObjectComma {
-				dec.scanp++
-				dec.tokenState = tokenObjectKey
-				continue
-			}
-			return dec.tokenError(c)
-
-		case '"':
-			if dec.tokenState == tokenObjectStart || dec.tokenState == tokenObjectKey {
-				var x string
-				old := dec.tokenState
-				dec.tokenState = tokenTopValue
-				err := dec.Decode(&x)
-				dec.tokenState = old
-				if err != nil {
-					clearOffset(err)
-					return nil, err
-				}
-				dec.tokenState = tokenObjectColon
-				return x, nil
-			}
-			fallthrough
-
-		default:
-			if !dec.tokenValueAllowed() {
-				return dec.tokenError(c)
-			}
-			var x interface{}
-			if err := dec.Decode(&x); err != nil {
-				clearOffset(err)
-				return nil, err
-			}
-			return x, nil
-		}
-	}
-}
-
 //makes a new copy of the decoder's keypath
 //if the token we're emitting is a key in the outermost level, it is omitted from the keypath
 func (dec *Decoder) genPath() []string {
@@ -432,6 +326,7 @@ func (dec *Decoder) genPath() []string {
 	return out
 }
 
+//TokenInfo - Return type for Token
 type TokenInfo struct {
 	Token   Token
 	Start   int      //starting byte offset for where this token occurred in the JSON object
@@ -440,12 +335,24 @@ type TokenInfo struct {
 	IsKey   bool     //true if this token is an object key
 }
 
-func (dec *Decoder) EndpToken() (TokenInfo, error) {
+// token returns the next JSON token in the input stream, along with a TokenInfo object with
+//a token's start, endp, keypath, and isKey
+// At the end of the input stream, Token returns nil, io.EOF.
+//
+// Token guarantees that the delimiters [ ] { } it returns are
+// properly nested and matched: if Token encounters an unexpected
+// delimiter in the input, it will return an error.
+//
+// The input stream consists of basic JSON values—bool, string,
+// number, and null—along with delimiters [ ] { } of type Delim
+// to mark the start and end of arrays and objects.
+// Commas and colons are elided.
+func (dec *Decoder) token() (TokenInfo, error) {
 
 	for {
 
 		c, err := dec.peek()
-		start := dec.BytesRead()
+		start := dec.BytesProcessed()
 		if err != nil {
 			return TokenInfo{}, err
 		}
@@ -458,7 +365,7 @@ func (dec *Decoder) EndpToken() (TokenInfo, error) {
 			dec.scanp++
 			dec.tokenStack = append(dec.tokenStack, dec.tokenState)
 			dec.tokenState = tokenArrayStart
-			return TokenInfo{Delim('['), start, dec.BytesRead(), dec.genPath(), false}, nil
+			return TokenInfo{Delim('['), start, dec.BytesProcessed(), dec.genPath(), false}, nil
 
 		case ']':
 			if dec.tokenState != tokenArrayStart && dec.tokenState != tokenArrayComma {
@@ -468,7 +375,7 @@ func (dec *Decoder) EndpToken() (TokenInfo, error) {
 			dec.tokenState = dec.tokenStack[len(dec.tokenStack)-1]
 			dec.tokenStack = dec.tokenStack[:len(dec.tokenStack)-1]
 			dec.tokenValueEnd()
-			return TokenInfo{Delim(']'), start, dec.BytesRead(), dec.genPath(), false}, nil
+			return TokenInfo{Delim(']'), start, dec.BytesProcessed(), dec.genPath(), false}, nil
 
 		case '{':
 			if !dec.tokenValueAllowed() {
@@ -479,12 +386,14 @@ func (dec *Decoder) EndpToken() (TokenInfo, error) {
 			dec.tokenState = tokenObjectStart
 
 			dec.objDepthLevel++
-			return TokenInfo{Delim('{'), start, dec.BytesRead(), dec.genPath(), false}, nil
+			return TokenInfo{Delim('{'), start, dec.BytesProcessed(), dec.genPath(), false}, nil
 
 		case '}':
 			if dec.tokenState != tokenObjectStart && dec.tokenState != tokenObjectComma {
 				return dec.endpTokenError(c)
 			}
+
+			dec.keyPath = dec.keyPath[:len(dec.keyPath)-1]
 			dec.scanp++
 			dec.tokenState = dec.tokenStack[len(dec.tokenStack)-1]
 			dec.tokenStack = dec.tokenStack[:len(dec.tokenStack)-1]
@@ -492,7 +401,7 @@ func (dec *Decoder) EndpToken() (TokenInfo, error) {
 
 			dec.objDepthLevel--
 
-			return TokenInfo{Delim('}'), start, dec.BytesRead(), dec.genPath(), false}, nil
+			return TokenInfo{Delim('}'), start, dec.BytesProcessed(), dec.genPath(), false}, nil
 
 		case ':':
 			if dec.tokenState != tokenObjectColon {
@@ -523,15 +432,16 @@ func (dec *Decoder) EndpToken() (TokenInfo, error) {
 				var x string
 				old := dec.tokenState
 				dec.tokenState = tokenTopValue
-				err := dec.Decode(&x)
+				err := dec.decode(&x)
 				dec.tokenState = old
 				if err != nil {
 					clearOffset(err)
 					return TokenInfo{}, err
 				}
 				dec.tokenState = tokenObjectColon
+				outPath := dec.genPath()
 				dec.keyPath = append(dec.keyPath, x)
-				return TokenInfo{x, start, dec.BytesRead(), dec.genPath(), true}, nil
+				return TokenInfo{x, start, dec.BytesProcessed(), outPath, true}, nil
 			}
 			fallthrough
 
@@ -540,13 +450,30 @@ func (dec *Decoder) EndpToken() (TokenInfo, error) {
 				return dec.endpTokenError(c)
 			}
 			var x interface{}
-			if err := dec.Decode(&x); err != nil {
+			if err := dec.decode(&x); err != nil {
 				clearOffset(err)
 				return TokenInfo{}, err
 			}
-			return TokenInfo{x, start, dec.BytesRead(), dec.genPath(), false}, nil
+			return TokenInfo{x, start, dec.BytesProcessed(), dec.genPath(), false}, nil
 		}
 	}
+}
+
+//Tokenize fully decodes the rest of its given input stream and returns a stream of
+//TokenInfo objects as described by token()
+func (dec *Decoder) Tokenize() ([]TokenInfo, error) {
+	var out []TokenInfo
+	for {
+		info, err := dec.token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, info)
+	}
+	return out, nil
 }
 
 func clearOffset(err error) {
@@ -581,7 +508,7 @@ func (dec *Decoder) tokenError(c byte) (Token, error) {
 
 // More reports whether there is another element in the
 // current array or object being parsed.
-func (dec *Decoder) More() bool {
+func (dec *Decoder) more() bool {
 	c, err := dec.peek()
 	return err == nil && c != ']' && c != '}'
 }
