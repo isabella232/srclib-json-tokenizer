@@ -212,7 +212,7 @@ func BenchmarkEncoderEncode(b *testing.B) {
 type tokenStreamCase struct {
 	json       string
 	expTokens  []interface{}
-	expStrings []string
+	expSplices []string
 	expIsKeys  []bool
 	expKeyPath [][]string
 }
@@ -223,42 +223,42 @@ type decodeThis struct {
 
 var tokenStreamCases = []tokenStreamCase{
 	// streaming token cases
-	{json: `10`, expTokens: []interface{}{float64(10)}, expStrings: []string{
+	{json: `10`, expTokens: []interface{}{float64(10)}, expSplices: []string{
 		`10`}, expIsKeys: []bool{false}, expKeyPath: [][]string{[]string{}}},
 	{json: ` [10] `, expTokens: []interface{}{
-		Delim('['), float64(10), Delim(']')}, expStrings: []string{
+		Delim('['), float64(10), Delim(']')}, expSplices: []string{
 		`[`, `10`, `]`}, expIsKeys: []bool{false, false, false}, expKeyPath: [][]string{
 		[]string{}, []string{}, []string{}}},
 	{json: ` [false,10,"b"] `, expTokens: []interface{}{
-		Delim('['), false, float64(10), "b", Delim(']')}, expStrings: []string{
+		Delim('['), false, float64(10), "b", Delim(']')}, expSplices: []string{
 		`[`, `false`, `10`, `"b"`, `]`}, expIsKeys: []bool{
 		false, false, false, false, false}, expKeyPath: [][]string{
 		[]string{}, []string{}, []string{}, []string{}, []string{}}},
 	{json: `{ "a": 1 }`, expTokens: []interface{}{
-		Delim('{'), "a", float64(1), Delim('}')}, expStrings: []string{
+		Delim('{'), "a", float64(1), Delim('}')}, expSplices: []string{
 		`{`, `"a"`, `1`, `}`}, expIsKeys: []bool{false, true, false, false}, expKeyPath: [][]string{
 		[]string{}, []string{}, []string{"a"}, []string{}}},
 	{json: `{"a": 1, "b":"3"}`, expTokens: []interface{}{
-		Delim('{'), "a", float64(1), "b", "3", Delim('}')}, expStrings: []string{
+		Delim('{'), "a", float64(1), "b", "3", Delim('}')}, expSplices: []string{
 		`{`, `"a"`, `1`, `"b"`, `"3"`, `}`}, expIsKeys: []bool{false, true, false, true, false, false}, expKeyPath: [][]string{
 		[]string{}, []string{}, []string{"a"}, []string{}, []string{"b"}, []string{}}},
 	{json: ` [{"a": 1},{"a": 2}] `, expTokens: []interface{}{
 		Delim('['),
 		Delim('{'), "a", float64(1), Delim('}'),
 		Delim('{'), "a", float64(2), Delim('}'),
-		Delim(']')}, expStrings: []string{`[`, `{`, `"a"`, `1`, `}`, `{`, `"a"`, `2`, `}`, `]`}, expIsKeys: []bool{
+		Delim(']')}, expSplices: []string{`[`, `{`, `"a"`, `1`, `}`, `{`, `"a"`, `2`, `}`, `]`}, expIsKeys: []bool{
 		false, false, true, false, false, false, true, false, false, false}, expKeyPath: [][]string{
 		[]string{}, []string{}, []string{}, []string{"a"}, []string{}, []string{},
 		[]string{}, []string{"a"}, []string{}, []string{}, []string{}}},
 	{json: `{"obj": {"a": 1}}`, expTokens: []interface{}{
 		Delim('{'), "obj", Delim('{'), "a", float64(1), Delim('}'),
-		Delim('}')}, expStrings: []string{`{`, `"obj"`, `{`, `"a"`, `1`, `}`, `}`}, expIsKeys: []bool{
+		Delim('}')}, expSplices: []string{`{`, `"obj"`, `{`, `"a"`, `1`, `}`, `}`}, expIsKeys: []bool{
 		false, true, false, true, false, false, false}, expKeyPath: [][]string{
 		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{}}},
 	{json: `{"obj": [{"a": 1}]}`, expTokens: []interface{}{
 		Delim('{'), "obj", Delim('['),
 		Delim('{'), "a", float64(1), Delim('}'),
-		Delim(']'), Delim('}')}, expStrings: []string{
+		Delim(']'), Delim('}')}, expSplices: []string{
 		`{`, `"obj"`, `[`, `{`, `"a"`, `1`, `}`, `]`, `}`}, expIsKeys: []bool{
 		false, true, false, false, true, false, false, false, false}, expKeyPath: [][]string{
 		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{"obj"}, []string{}}},
@@ -297,7 +297,7 @@ func TestDecodeInStream(t *testing.T) {
 				break
 			}
 
-			expSlice := tcase.expStrings[i]
+			expSlice := tcase.expSplices[i]
 			actualSlice := string(tcBytes[info.Start:info.Endp])
 
 			if expSlice != actualSlice {
