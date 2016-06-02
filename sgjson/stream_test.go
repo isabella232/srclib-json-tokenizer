@@ -210,11 +210,12 @@ func BenchmarkEncoderEncode(b *testing.B) {
 }
 
 type tokenStreamCase struct {
-	json       string
-	expTokens  []interface{}
-	expSplices []string
-	expIsKeys  []bool
-	expKeyPath [][]string
+	json         string
+	expTokens    []interface{}
+	expSlices    []string
+	expIsKeys    []bool
+	expKeyPath   [][]string
+	expLineCount []int
 }
 
 type decodeThis struct {
@@ -223,45 +224,61 @@ type decodeThis struct {
 
 var tokenStreamCases = []tokenStreamCase{
 	// streaming token cases
-	{json: `10`, expTokens: []interface{}{float64(10)}, expSplices: []string{
-		`10`}, expIsKeys: []bool{false}, expKeyPath: [][]string{[]string{}}},
+	{json: `10`, expTokens: []interface{}{float64(10)}, expSlices: []string{
+		`10`}, expIsKeys: []bool{false}, expKeyPath: [][]string{[]string{}},
+		expLineCount: []int{1}},
 	{json: ` [10] `, expTokens: []interface{}{
-		Delim('['), float64(10), Delim(']')}, expSplices: []string{
+		Delim('['), float64(10), Delim(']')}, expSlices: []string{
 		`[`, `10`, `]`}, expIsKeys: []bool{false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{}}},
+		[]string{}, []string{}, []string{}},
+		expLineCount: []int{1, 1, 1}},
 	{json: ` [false,10,"b"] `, expTokens: []interface{}{
-		Delim('['), false, float64(10), "b", Delim(']')}, expSplices: []string{
+		Delim('['), false, float64(10), "b", Delim(']')}, expSlices: []string{
 		`[`, `false`, `10`, `"b"`, `]`}, expIsKeys: []bool{
 		false, false, false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{}, []string{}, []string{}}},
+		[]string{}, []string{}, []string{}, []string{}, []string{}},
+		expLineCount: []int{1, 1, 1, 1, 1}},
 	{json: `{ "a": 1 }`, expTokens: []interface{}{
-		Delim('{'), "a", float64(1), Delim('}')}, expSplices: []string{
+		Delim('{'), "a", float64(1), Delim('}')}, expSlices: []string{
 		`{`, `"a"`, `1`, `}`}, expIsKeys: []bool{false, true, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{"a"}, []string{}}},
+		[]string{}, []string{}, []string{"a"}, []string{}},
+		expLineCount: []int{1, 1, 1, 1}},
 	{json: `{"a": 1, "b":"3"}`, expTokens: []interface{}{
-		Delim('{'), "a", float64(1), "b", "3", Delim('}')}, expSplices: []string{
+		Delim('{'), "a", float64(1), "b", "3", Delim('}')}, expSlices: []string{
 		`{`, `"a"`, `1`, `"b"`, `"3"`, `}`}, expIsKeys: []bool{false, true, false, true, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{"a"}, []string{}, []string{"b"}, []string{}}},
+		[]string{}, []string{}, []string{"a"}, []string{}, []string{"b"}, []string{}},
+		expLineCount: []int{1, 1, 1, 1, 1, 1}},
 	{json: ` [{"a": 1},{"a": 2}] `, expTokens: []interface{}{
 		Delim('['),
 		Delim('{'), "a", float64(1), Delim('}'),
 		Delim('{'), "a", float64(2), Delim('}'),
-		Delim(']')}, expSplices: []string{`[`, `{`, `"a"`, `1`, `}`, `{`, `"a"`, `2`, `}`, `]`}, expIsKeys: []bool{
+		Delim(']')}, expSlices: []string{`[`, `{`, `"a"`, `1`, `}`, `{`, `"a"`, `2`, `}`, `]`}, expIsKeys: []bool{
 		false, false, true, false, false, false, true, false, false, false}, expKeyPath: [][]string{
 		[]string{}, []string{}, []string{}, []string{"a"}, []string{}, []string{},
-		[]string{}, []string{"a"}, []string{}, []string{}, []string{}}},
+		[]string{}, []string{"a"}, []string{}, []string{}, []string{}},
+		expLineCount: []int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
 	{json: `{"obj": {"a": 1}}`, expTokens: []interface{}{
 		Delim('{'), "obj", Delim('{'), "a", float64(1), Delim('}'),
-		Delim('}')}, expSplices: []string{`{`, `"obj"`, `{`, `"a"`, `1`, `}`, `}`}, expIsKeys: []bool{
+		Delim('}')}, expSlices: []string{`{`, `"obj"`, `{`, `"a"`, `1`, `}`, `}`}, expIsKeys: []bool{
 		false, true, false, true, false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{}}},
+		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{}},
+		expLineCount: []int{1, 1, 1, 1, 1, 1, 1}},
 	{json: `{"obj": [{"a": 1}]}`, expTokens: []interface{}{
 		Delim('{'), "obj", Delim('['),
 		Delim('{'), "a", float64(1), Delim('}'),
-		Delim(']'), Delim('}')}, expSplices: []string{
+		Delim(']'), Delim('}')}, expSlices: []string{
 		`{`, `"obj"`, `[`, `{`, `"a"`, `1`, `}`, `]`, `}`}, expIsKeys: []bool{
 		false, true, false, false, true, false, false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{"obj"}, []string{}}},
+		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{"obj"}, []string{}},
+		expLineCount: []int{1, 1, 1, 1, 1, 1, 1, 1, 1}},
+	{json: `{"obj": [{"a":` + "\n" + `1}]}`, expTokens: []interface{}{
+		Delim('{'), "obj", Delim('['),
+		Delim('{'), "a", float64(1), Delim('}'),
+		Delim(']'), Delim('}')}, expSlices: []string{
+		`{`, `"obj"`, `[`, `{`, `"a"`, `1`, `}`, `]`, `}`}, expIsKeys: []bool{
+		false, true, false, false, true, false, false, false, false}, expKeyPath: [][]string{
+		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{"obj"}, []string{}},
+		expLineCount: []int{1, 1, 1, 1, 1, 2, 2, 2, 2}},
 }
 
 func TestDecodeInStream(t *testing.T) {
@@ -278,6 +295,7 @@ func TestDecodeInStream(t *testing.T) {
 			var err error
 
 			info, err = dec.token()
+
 			tk = info.Token
 
 			if experr, ok := etk.(error); ok {
@@ -297,19 +315,27 @@ func TestDecodeInStream(t *testing.T) {
 				break
 			}
 
-			expSlice := tcase.expSplices[i]
+			expSlice := tcase.expSlices[i]
 			actualSlice := string(tcBytes[info.Start:info.Endp])
 
 			if expSlice != actualSlice {
 				t.Errorf("case %v: comparing slices: expected %s was %s in %s", ci, expSlice, actualSlice, tcase.json)
+				break
 			}
 
 			if info.IsKey != tcase.expIsKeys[i] {
 				t.Errorf("case %v: comparing isKey: expected %t was %t in %s", ci, tcase.expIsKeys[i], info.IsKey, tcase.json)
+				break
 			}
 
 			if !reflect.DeepEqual(info.KeyPath, tcase.expKeyPath[i]) {
 				t.Errorf("case %v: comparing keyPaths: expected %v was %v for token # %v, %s in %s", ci, tcase.expKeyPath[i], info.KeyPath, i, expSlice, tcase.json)
+				break
+			}
+
+			if info.Line != tcase.expLineCount[i] {
+				t.Errorf("case %v: comparing LineCounts: expected %v was %v for token # %v, %s in %s", ci, tcase.expLineCount[i], info.Line, i, expSlice, tcase.json)
+				break
 			}
 
 		}
