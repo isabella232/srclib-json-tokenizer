@@ -286,7 +286,6 @@ var tokenStreamCases = []tokenStreamCase{
 
 		[]int{1, 1, 1, 1, 1, 1, 1},
 	},
-
 	{
 		`{"obj": [{"a": 1}]}`,
 		[]interface{}{Delim('{'), "obj", Delim('['), Delim('{'), "a", float64(1), Delim('}'), Delim(']'),
