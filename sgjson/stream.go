@@ -22,10 +22,10 @@ type Decoder struct {
 	tokenState int
 	tokenStack []int
 
-	lineCount     int      //what line of the file the decoder is currently processing
-	clearedBytes  int      //bytes removed from the buffer
-	objDepthLevel int      //how many objects the parser is currently "nested in"
-	keyPath       []string //path of keys traversed to get to current token
+	lineCount     int      // what line of the file the decoder is currently processing
+	clearedBytes  int      // bytes removed from the buffer
+	objDepthLevel int      // how many objects the parser is currently "nested in"
+	keyPath       []string // path of keys traversed to get to current token
 }
 
 // NewDecoder returns a new decoder that reads from r.
@@ -313,13 +313,13 @@ func (d Delim) String() string {
 	return string(d)
 }
 
-//makes a new copy of the decoder's keypath
-//if the token we're emitting is a key in the outermost level, it is omitted from the keypath
+// makes a new copy of the decoder's keypath
+// if the token we're emitting is a key in the outermost level, it is omitted from the keypath
 func (dec *Decoder) genPath() []string {
 	out := make([]string, len(dec.keyPath))
 	copy(out, dec.keyPath)
 
-	//are we in the outmost level after parsing a key, or have we only consumed the first "{"?
+	// are we in the outmost level after parsing a key, or have we only consumed the first "{"?
 	if dec.objDepthLevel < 2 && dec.tokenState == tokenObjectColon && len(out) > 0 {
 		return out[1:]
 	}
@@ -327,18 +327,18 @@ func (dec *Decoder) genPath() []string {
 	return out
 }
 
-//TokenInfo - Return type for Token
+// TokenInfo - Return type for Token
 type TokenInfo struct {
 	Token   Token
-	Line    int      //line number for where this token occurred in the JSON object
-	Start   int      //starting byte offset for where this token occurred in the JSON object
-	Endp    int      //ending byte offset for where this token occurred in the JSON object
-	KeyPath []string //path of object keys that were traversed in order to reach this token
-	IsKey   bool     //true if this token is an object key
+	Line    int      // line number for where this token occurred in the JSON object
+	Start   int      // starting byte offset for where this token occurred in the JSON object
+	Endp    int      // ending byte offset for where this token occurred in the JSON object
+	KeyPath []string // path of object keys that were traversed in order to reach this token
+	IsKey   bool     // true if this token is an object key
 }
 
 // token returns the next JSON token in the input stream, along with a TokenInfo object with
-//a token's start, endp, keypath, and isKey
+// a token's start, endp, keypath, and isKey
 // At the end of the input stream, Token returns nil, io.EOF.
 //
 // Token guarantees that the delimiters [ ] { } it returns are
@@ -350,9 +350,7 @@ type TokenInfo struct {
 // to mark the start and end of arrays and objects.
 // Commas and colons are elided.
 func (dec *Decoder) token() (TokenInfo, error) {
-
 	for {
-
 		c, err := dec.peek()
 		start := dec.BytesProcessed()
 		line := dec.lineCount
@@ -468,8 +466,8 @@ func (dec *Decoder) token() (TokenInfo, error) {
 	}
 }
 
-//Tokenize fully decodes the rest of its given input stream and returns a stream of
-//TokenInfo objects as described by token()
+// Tokenize fully decodes the rest of its given input stream and returns a stream of
+// TokenInfo objects as described by token()
 func (dec *Decoder) Tokenize() ([]TokenInfo, error) {
 	var out []TokenInfo
 	for {

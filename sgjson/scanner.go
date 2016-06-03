@@ -189,7 +189,7 @@ func (s *scanner) popParseState() {
 }
 
 func isSpace(c byte) bool {
-	return c == ' ' || c == '\t' || c == '\r' || c == '\n'
+	return c == ' ' || c == '\t' || isLineBreak(c)
 }
 
 func isLineBreak(c byte) bool {

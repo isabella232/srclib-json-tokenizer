@@ -224,61 +224,93 @@ type decodeThis struct {
 
 var tokenStreamCases = []tokenStreamCase{
 	// streaming token cases
-	{json: `10`, expTokens: []interface{}{float64(10)}, expSlices: []string{
-		`10`}, expIsKeys: []bool{false}, expKeyPath: [][]string{[]string{}},
-		expLineCount: []int{1}},
-	{json: ` [10] `, expTokens: []interface{}{
-		Delim('['), float64(10), Delim(']')}, expSlices: []string{
-		`[`, `10`, `]`}, expIsKeys: []bool{false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{}},
-		expLineCount: []int{1, 1, 1}},
-	{json: ` [false,10,"b"] `, expTokens: []interface{}{
-		Delim('['), false, float64(10), "b", Delim(']')}, expSlices: []string{
-		`[`, `false`, `10`, `"b"`, `]`}, expIsKeys: []bool{
-		false, false, false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{}, []string{}, []string{}},
-		expLineCount: []int{1, 1, 1, 1, 1}},
-	{json: `{ "a": 1 }`, expTokens: []interface{}{
-		Delim('{'), "a", float64(1), Delim('}')}, expSlices: []string{
-		`{`, `"a"`, `1`, `}`}, expIsKeys: []bool{false, true, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{"a"}, []string{}},
-		expLineCount: []int{1, 1, 1, 1}},
-	{json: `{"a": 1, "b":"3"}`, expTokens: []interface{}{
-		Delim('{'), "a", float64(1), "b", "3", Delim('}')}, expSlices: []string{
-		`{`, `"a"`, `1`, `"b"`, `"3"`, `}`}, expIsKeys: []bool{false, true, false, true, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{"a"}, []string{}, []string{"b"}, []string{}},
-		expLineCount: []int{1, 1, 1, 1, 1, 1}},
-	{json: ` [{"a": 1},{"a": 2}] `, expTokens: []interface{}{
-		Delim('['),
-		Delim('{'), "a", float64(1), Delim('}'),
-		Delim('{'), "a", float64(2), Delim('}'),
-		Delim(']')}, expSlices: []string{`[`, `{`, `"a"`, `1`, `}`, `{`, `"a"`, `2`, `}`, `]`}, expIsKeys: []bool{
-		false, false, true, false, false, false, true, false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{}, []string{"a"}, []string{}, []string{},
-		[]string{}, []string{"a"}, []string{}, []string{}, []string{}},
-		expLineCount: []int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
-	{json: `{"obj": {"a": 1}}`, expTokens: []interface{}{
-		Delim('{'), "obj", Delim('{'), "a", float64(1), Delim('}'),
-		Delim('}')}, expSlices: []string{`{`, `"obj"`, `{`, `"a"`, `1`, `}`, `}`}, expIsKeys: []bool{
-		false, true, false, true, false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{}},
-		expLineCount: []int{1, 1, 1, 1, 1, 1, 1}},
-	{json: `{"obj": [{"a": 1}]}`, expTokens: []interface{}{
-		Delim('{'), "obj", Delim('['),
-		Delim('{'), "a", float64(1), Delim('}'),
-		Delim(']'), Delim('}')}, expSlices: []string{
-		`{`, `"obj"`, `[`, `{`, `"a"`, `1`, `}`, `]`, `}`}, expIsKeys: []bool{
-		false, true, false, false, true, false, false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{"obj"}, []string{}},
-		expLineCount: []int{1, 1, 1, 1, 1, 1, 1, 1, 1}},
-	{json: `{"obj": [{"a":` + "\n" + `1}]}`, expTokens: []interface{}{
-		Delim('{'), "obj", Delim('['),
-		Delim('{'), "a", float64(1), Delim('}'),
-		Delim(']'), Delim('}')}, expSlices: []string{
-		`{`, `"obj"`, `[`, `{`, `"a"`, `1`, `}`, `]`, `}`}, expIsKeys: []bool{
-		false, true, false, false, true, false, false, false, false}, expKeyPath: [][]string{
-		[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"}, []string{"obj"}, []string{"obj"}, []string{}},
-		expLineCount: []int{1, 1, 1, 1, 1, 2, 2, 2, 2}},
+	{
+		`10`,
+		[]interface{}{float64(10)},
+		[]string{`10`},
+		[]bool{false},
+		[][]string{[]string{}},
+		[]int{1},
+	},
+	{
+		` [10] `,
+		[]interface{}{Delim('['), float64(10), Delim(']')},
+		[]string{`[`, `10`, `]`},
+		[]bool{false, false, false},
+		[][]string{[]string{}, []string{}, []string{}},
+		[]int{1, 1, 1},
+	},
+	{
+		` [false,10,"b"] `,
+		[]interface{}{Delim('['), false, float64(10), "b", Delim(']')},
+		[]string{`[`, `false`, `10`, `"b"`, `]`},
+		[]bool{false, false, false, false, false},
+		[][]string{[]string{}, []string{}, []string{}, []string{}, []string{}},
+		[]int{1, 1, 1, 1, 1},
+	},
+	{
+		`{ "a": 1 }`,
+		[]interface{}{Delim('{'), "a", float64(1), Delim('}')},
+		[]string{`{`, `"a"`, `1`, `}`},
+		[]bool{false, true, false, false},
+		[][]string{[]string{}, []string{}, []string{"a"}, []string{}},
+		[]int{1, 1, 1, 1},
+	},
+	{
+		`{"a": 1, "b":"3"}`,
+		[]interface{}{Delim('{'), "a", float64(1), "b", "3", Delim('}')},
+		[]string{`{`, `"a"`, `1`, `"b"`, `"3"`, `}`},
+		[]bool{false, true, false, true, false, false},
+		[][]string{[]string{}, []string{}, []string{"a"}, []string{}, []string{"b"}, []string{}},
+		[]int{1, 1, 1, 1, 1, 1},
+	},
+	{
+		` [{"a": 1},{"a": 2}] `,
+		[]interface{}{Delim('['), Delim('{'), "a", float64(1), Delim('}'), Delim('{'),
+			"a", float64(2), Delim('}'), Delim(']')},
+
+		[]string{`[`, `{`, `"a"`, `1`, `}`, `{`, `"a"`, `2`, `}`, `]`},
+		[]bool{false, false, true, false, false, false, true, false, false, false},
+		[][]string{[]string{}, []string{}, []string{}, []string{"a"}, []string{}, []string{},
+			[]string{}, []string{"a"}, []string{}, []string{}, []string{}},
+
+		[]int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	},
+	{
+		`{"obj": {"a": 1}}`,
+		[]interface{}{Delim('{'), "obj", Delim('{'), "a", float64(1), Delim('}'), Delim('}')},
+		[]string{`{`, `"obj"`, `{`, `"a"`, `1`, `}`, `}`},
+		[]bool{false, true, false, true, false, false, false},
+		[][]string{[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj", "a"},
+			[]string{"obj"}, []string{}},
+
+		[]int{1, 1, 1, 1, 1, 1, 1},
+	},
+
+	{
+		`{"obj": [{"a": 1}]}`,
+		[]interface{}{Delim('{'), "obj", Delim('['), Delim('{'), "a", float64(1), Delim('}'), Delim(']'),
+			Delim('}')},
+
+		[]string{`{`, `"obj"`, `[`, `{`, `"a"`, `1`, `}`, `]`, `}`},
+		[]bool{false, true, false, false, true, false, false, false, false},
+		[][]string{[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj"},
+			[]string{"obj", "a"}, []string{"obj"}, []string{"obj"}, []string{}},
+
+		[]int{1, 1, 1, 1, 1, 1, 1, 1, 1},
+	},
+	{
+		`{"obj": [{"a":` + "\n" + `1}]}`,
+		[]interface{}{Delim('{'), "obj", Delim('['), Delim('{'), "a", float64(1), Delim('}'), Delim(']'),
+			Delim('}')},
+
+		[]string{`{`, `"obj"`, `[`, `{`, `"a"`, `1`, `}`, `]`, `}`},
+		[]bool{false, true, false, false, true, false, false, false, false},
+		[][]string{[]string{}, []string{}, []string{"obj"}, []string{"obj"}, []string{"obj"},
+			[]string{"obj", "a"}, []string{"obj"}, []string{"obj"}, []string{}},
+
+		[]int{1, 1, 1, 1, 1, 2, 2, 2, 2},
+	},
 }
 
 func TestDecodeInStream(t *testing.T) {
